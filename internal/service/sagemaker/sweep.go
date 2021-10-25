@@ -396,6 +396,12 @@ func sweepEndpoints(region string) error {
 		NameContains: aws.String(sweep.ResourcePrefix),
 	}
 	resp, err := conn.ListEndpoints(req)
+
+	if sweep.SkipSweepError(err) {
+		log.Printf("[WARN] Skipping SageMaker Endpoint sweep for %s: %s", region, err)
+		return nil
+	}
+
 	if err != nil {
 		return fmt.Errorf("error listing endpoints: %s", err)
 	}
