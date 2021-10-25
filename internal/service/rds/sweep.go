@@ -519,7 +519,7 @@ func sweepProxies(region string) error {
 		return !lastPage
 	})
 
-	if sweep.SkipSweepError(err) {
+	if sweep.SkipSweepError(err) || tfawserr.ErrCodeEquals(err, "InvalidAction"){
 		log.Printf("[WARN] Skipping RDS DB Proxy sweep for %s: %s", region, err)
 		return nil
 	}
