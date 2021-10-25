@@ -176,6 +176,10 @@ func SkipSweepError(err error) bool {
 	if tfawserr.ErrMessageContains(err, "InvalidAction", "is not valid") {
 		return true
 	}
+	// For example from us-gov-east-1 sns.ListPlatformApplicationsPages
+	if tfawserr.ErrMessageContains(err, "InvalidAction", "not supported in this region") {
+		return true
+	}
 	// For example from GovCloud SES.SetActiveReceiptRuleSet.
 	if tfawserr.ErrMessageContains(err, "InvalidAction", "Unavailable Operation") {
 		return true
