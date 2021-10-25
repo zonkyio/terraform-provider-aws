@@ -3579,16 +3579,27 @@ data "aws_rds_orderable_db_instance" "test" {
 }
 
 func testAccInstanceConfig_orderableClassMySQL() string {
-	return testAccInstanceConfig_orderableClass("mysql", "5.6.35", "general-public-license")
+	return testAccInstanceConfig_orderableClass("mysql", "8.0.25", "general-public-license")
 }
 
 func testAccInstanceConfig_orderableClassMariadb() string {
-	return testAccInstanceConfig_orderableClass("mariadb", "10.2.15", "general-public-license")
+	return testAccInstanceConfig_orderableClass("mariadb", "10.5.12", "general-public-license")
 }
 
 func testAccInstanceConfig_orderableClassSQLServerEx() string {
-	return testAccInstanceConfig_orderableClass("sqlserver-ex", "14.00.1000.169.v1", "license-included")
+	return testAccInstanceConfig_orderableClass("sqlserver-ex", "15.00.4073.23.v1", "license-included")
 }
+
+const testAccInstanceConfig_orderableClassSQLServerSe = `
+data "aws_rds_orderable_db_instance" "test" {
+  engine         = "sqlserver-se"
+  engine_version = "15.00.4073.23.v1"
+  license_model  = "license-included"
+  storage_type   = "standard"
+
+  preferred_instance_classes = ["db.m5.large", "db.m4.large", "db.r4.large"]
+}
+`
 
 func testAccInstanceBasicConfig() string {
 	return acctest.ConfigCompose(testAccInstanceConfig_orderableClassMySQL(), `
@@ -3599,7 +3610,7 @@ resource "aws_db_instance" "bar" {
   engine_version          = data.aws_rds_orderable_db_instance.test.engine_version
   instance_class          = data.aws_rds_orderable_db_instance.test.instance_class
   name                    = "baz"
-  parameter_group_name    = "default.mysql5.6"
+  parameter_group_name    = "default.mysql8.0"
   password                = "barbarbarbar"
   skip_final_snapshot     = true
   username                = "foo"
@@ -3820,7 +3831,7 @@ resource "aws_db_instance" "snapshot" {
 
   publicly_accessible = true
 
-  parameter_group_name = "default.mysql5.6"
+  parameter_group_name = "default.mysql8.0"
 
   skip_final_snapshot       = true
   final_snapshot_identifier = "tf-acc-test-%[1]d"
@@ -3989,7 +4000,7 @@ resource "aws_db_instance" "snapshot" {
   username                = "foo"
   backup_retention_period = 1
 
-  parameter_group_name = "default.mysql5.6"
+  parameter_group_name = "default.mysql8.0"
 
   copy_tags_to_snapshot     = true
   final_snapshot_identifier = "foobarbaz-test-terraform-final-snapshot-%[1]d"
@@ -4336,7 +4347,7 @@ resource "aws_db_instance" "bar" {
   name                 = "mydb"
   username             = "foo"
   password             = "barbarbar"
-  parameter_group_name = "default.mysql5.6"
+  parameter_group_name = "default.mysql8.0"
   db_subnet_group_name = aws_db_subnet_group.foo.name
   port                 = 3305
   allocated_storage    = 10
@@ -4435,7 +4446,7 @@ resource "aws_db_instance" "bar" {
   name                 = "mydb"
   username             = "foo"
   password             = "barbarbar"
-  parameter_group_name = "default.mysql5.6"
+  parameter_group_name = "default.mysql8.0"
   db_subnet_group_name = aws_db_subnet_group.bar.name
   port                 = 3305
   allocated_storage    = 10
@@ -5490,16 +5501,9 @@ resource "aws_db_instance" "test" {
 }
 
 func testAccInstanceConfig_EnabledCloudWatchLogsExports_MSSQL(rName string) string {
-	return fmt.Sprintf(`
-data "aws_rds_orderable_db_instance" "test" {
-  engine         = "sqlserver-se"
-  engine_version = "14.00.1000.169.v1"
-  license_model  = "license-included"
-  storage_type   = "standard"
-
-  preferred_instance_classes = ["db.m5.large", "db.m4.large", "db.r4.large"]
-}
-
+	return acctest.ConfigCompose(
+		testAccInstanceConfig_orderableClassSQLServerSe,
+		fmt.Sprintf(`
 resource "aws_db_instance" "test" {
   allocated_storage               = 20
   enabled_cloudwatch_logs_exports = ["agent", "error"]
@@ -5511,7 +5515,7 @@ resource "aws_db_instance" "test" {
   username                        = "tfacctest"
   skip_final_snapshot             = true
 }
-`, rName)
+`, rName))
 }
 
 func testAccInstanceConfig_EnabledCloudWatchLogsExports_Postgresql(rName string) string {
@@ -6320,7 +6324,7 @@ resource "aws_db_instance" "test" {
 func testAccInstanceConfig_ReplicateSourceDB_ParameterGroupName(rName string) string {
 	return acctest.ConfigCompose(testAccInstanceConfig_orderableClassMySQL(), fmt.Sprintf(`
 resource "aws_db_parameter_group" "test" {
-  family = "mysql5.6"
+  family = "mysql8.0"
   name   = %[1]q
 
   parameter {
@@ -6549,16 +6553,9 @@ resource "aws_db_instance" "test" {
 }
 
 func testAccInstanceConfig_SnapshotIdentifier_Io1Storage(rName string, iops int) string {
-	return fmt.Sprintf(`
-data "aws_rds_orderable_db_instance" "test" {
-  engine         = "mariadb"
-  engine_version = "10.2.15"
-  license_model  = "general-public-license"
-  storage_type   = "io1"
-
-  preferred_instance_classes = ["db.t3.micro", "db.t2.micro", "db.t2.medium"]
-}
-
+	return acctest.ConfigCompose(
+		testAccInstanceConfig_orderableClassMariadb(),
+		fmt.Sprintf(`
 resource "aws_db_instance" "source" {
   allocated_storage   = 200
   engine              = data.aws_rds_orderable_db_instance.test.engine
@@ -6583,7 +6580,7 @@ resource "aws_db_instance" "test" {
   iops                = %[2]d
   storage_type        = data.aws_rds_orderable_db_instance.test.storage_type
 }
-`, rName, iops)
+`, rName, iops))
 }
 
 func testAccInstanceConfig_SnapshotIdentifier_AllowMajorVersionUpgrade(rName string, allowMajorVersionUpgrade bool) string {
@@ -7189,16 +7186,9 @@ resource "aws_db_instance" "test" {
 }
 
 func testAccInstanceConfig_SnapshotIdentifier_MultiAZ_SQLServer(rName string, multiAz bool) string {
-	return fmt.Sprintf(`
-data "aws_rds_orderable_db_instance" "test" {
-  engine         = "sqlserver-se"
-  engine_version = "14.00.1000.169.v1"
-  license_model  = "license-included"
-  storage_type   = "standard"
-
-  preferred_instance_classes = ["db.m5.large", "db.m4.large", "db.r4.large"]
-}
-
+	return acctest.ConfigCompose(
+		testAccInstanceConfig_orderableClassSQLServerSe,
+		fmt.Sprintf(`
 resource "aws_db_instance" "source" {
   allocated_storage   = 20
   engine              = data.aws_rds_orderable_db_instance.test.engine
@@ -7224,7 +7214,7 @@ resource "aws_db_instance" "test" {
   snapshot_identifier     = aws_db_snapshot.test.id
   skip_final_snapshot     = true
 }
-`, rName, multiAz)
+`, rName, multiAz))
 }
 
 func testAccInstanceConfig_SnapshotIdentifier_ParameterGroupName(rName string) string {
@@ -7232,7 +7222,7 @@ func testAccInstanceConfig_SnapshotIdentifier_ParameterGroupName(rName string) s
 		testAccInstanceConfig_orderableClassMariadb(),
 		fmt.Sprintf(`
 resource "aws_db_parameter_group" "test" {
-  family = "mariadb10.2"
+  family = "mariadb10.5"
   name   = %[1]q
 
   parameter {
