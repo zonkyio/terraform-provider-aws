@@ -640,3 +640,12 @@ rules:
           regex: (\d+)
     severity: ERROR
     fix: "aws.Int64($X)"
+
+  - id: calling-tfawserr.ErrMessageContains-with-empty-message
+    languages: [go]
+    message: Prefer `tfawserr.ErrCodeEquals` over `tfawserr.ErrMessageContains` with no message
+    paths:
+      include:
+        - internal
+    pattern: 'tfawserr.ErrMessageContains($ERR, $CODE, "")'
+    severity: WARNING
